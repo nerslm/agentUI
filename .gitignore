@@ -9,9 +9,11 @@ venv/
 ENV/
 env/
 *.egg-info/
-dist/
 build/
 *.egg
+
+# Python dist (not ui/dist)
+/dist/
 
 # Node
 node_modules/
