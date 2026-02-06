@@ -2,7 +2,11 @@
 
 A node-based flow graph UI to visualize AI agent execution, replacing traditional chat interfaces with an interactive visual representation of tool calls, subagents, and message flows.
 
-<!-- Add a screenshot here: ![Agent Flow UI](./docs/screenshot.png) -->
+### Dark Theme
+![Dark Theme](./docs/screenshot-dark.png)
+
+### Light Theme
+![Light Theme](./docs/screenshot-light.png)
 
 ## Features
 
