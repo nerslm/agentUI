@@ -1,186 +1,44 @@
 # agentUI
 
-A node-based flow graph UI to visualize AI agent execution, replacing traditional chat interfaces with an interactive visual representation of tool calls, subagents, and message flows.
+把 AI agent 的执行过程从线性聊天记录变成可视化的节点图。
 
-### Dark Theme
-![Dark Theme](./docs/screenshot-dark.png)
+## 设计思想
 
-### Light Theme
-![Light Theme](./docs/screenshot-light.png)
+**为什么不是聊天界面？**
 
-## Features
+传统 chat UI 把一切展平成消息流——用户说一句，AI 回一句，工具调用藏在折叠里。但 agent 的执行本质上是**图结构**：一条消息触发多个工具、工具结果汇聚成回复、subagent 在后台并行运行。
 
-- **Radial Flow Layout**: Messages and tool calls arranged in a radial pattern around a central node
-- **Tool Batching**: Consecutive tool calls merged into single "Tools (n)" nodes for cleaner visualization
-- **Subagent Visualization**: Independent subagent "universes" with their own radial layouts
-- **Real-time Updates**: WebSocket-based telemetry for live graph updates
-- **Breathing Animation**: Running subagent nodes display animated glow effect
-- **Persistent Layout**: Node positions saved and restored across sessions
-- **Light/Dark Theme**: Toggle between themes
-- **Interactive Inspector**: Click nodes to view details, arguments, and results
+agentUI 用 React Flow 把这个图直接画出来：
+- **主节点在中心**，消息和工具调用围绕它径向展开
+- **连续工具调用合并**成 "Tools (n)" 批次节点，避免视觉噪音
+- **Subagent 是独立宇宙**，有自己的中心和布局，不和主图纠缠
+- **LLM 节点隐藏**——它只是中转站，隐藏后链路更清晰
 
-## Architecture
+实时 WebSocket 推送事件，节点位置跨会话持久化。
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend (React)                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  React Flow │  │   Chat UI   │  │  Inspector Panel    │  │
-│  │  (Graph)    │  │             │  │                     │  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-│         │                │                     │             │
-│         └────────────────┴─────────────────────┘             │
-│                          │                                   │
-│                    WebSocket + REST                          │
-└──────────────────────────┼───────────────────────────────────┘
-                           │
-┌──────────────────────────┼───────────────────────────────────┐
-│                     Backend (Python)                         │
-│  ┌─────────────┐  ┌──────┴──────┐  ┌─────────────────────┐  │
-│  │   Agent     │  │  UI Server  │  │  Telemetry Emitter  │  │
-│  │   Loop      │──│  (aiohttp)  │──│                     │  │
-│  └──────┬──────┘  └─────────────┘  └─────────────────────┘  │
-│         │                                                    │
-│  ┌──────┴──────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Tools     │  │  Subagent   │  │  Session Manager    │  │
-│  │   Manager   │  │  Manager    │  │                     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-└──────────────────────────────────────────────────────────────┘
-```
+## 快速开始
 
-## Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- An OpenAI-compatible API key
-
-### Installation
-
-1. Clone the repository:
 ```bash
 git clone https://github.com/nerslm/agentUI.git
 cd agentUI
-```
-
-2. Install Python dependencies:
-```bash
 pip install -e .
-```
+cd ui && npm install && npm run build && cd ..
 
-3. Install frontend dependencies and build:
-```bash
-cd ui
-npm install
-npm run build
-cd ..
-```
+export OPENAI_API_KEY="your-key"
 
-4. Set your API key:
-```bash
-export OPENAI_API_KEY="your-api-key"
-# Or for other providers:
-export ANTHROPIC_API_KEY="your-api-key"
-```
-
-> **Note**: It's recommended to use a virtual environment (`python -m venv .venv && source .venv/bin/activate`) before installing dependencies.
-
-### Running
-
-Start both the gateway (agent backend) and UI server:
-
-```bash
-# Terminal 1: Start the gateway
+# 两个终端
 nanobot gateway --port 18790
-
-# Terminal 2: Start the UI server
 nanobot ui --port 18791
 ```
 
-Open http://localhost:18791 in your browser.
+打开 http://localhost:18791
 
-## Configuration
+## 截图
 
-Create a `config.yaml` file in the workspace directory:
-
-```yaml
-provider: openai  # or anthropic, openrouter
-model: gpt-4o
-max_tokens: 4096
-
-# Optional: Enable specific tools
-tools:
-  - read_file
-  - write_file
-  - list_dir
-  - shell
-  - spawn  # Enable subagent spawning
-```
-
-## UI Controls
-
-| Button | Description |
-|--------|-------------|
-| **Light/Dark** | Toggle theme |
-| **Hide/Show panel** | Toggle inspector panel |
-| **Relayout** | Recalculate node positions |
-| **Save** | Manually save current layout |
-| **Session dropdown** | Switch between chat sessions |
-| **+ New** | Create a new session |
-
-## Node Types
-
-| Color | Type | Description |
-|-------|------|-------------|
-| 🔵 Blue | Message | User or assistant messages |
-| 🟢 Green | Tool | Tool call batches |
-| 🟣 Purple | Subagent | Background subagent tasks |
-| 🔴 Red | Error | Failed operations |
-
-## Development
-
-### Frontend Development
-
-```bash
-cd ui
-npm install
-npm run dev  # Start Vite dev server with hot reload
-```
-
-### Backend Development
-
-```bash
-pip install -e ".[dev]"
-pytest  # Run tests
-```
-
-## Project Structure
-
-```
-.
-├── nanobot/
-│   ├── agent/           # Agent loop, tools, subagent manager
-│   ├── bus/             # Message bus for async communication
-│   ├── context/         # Prompt building and context management
-│   ├── providers/       # LLM provider integrations
-│   ├── session/         # Session and history management
-│   ├── telemetry/       # Event emission for UI visualization
-│   └── ui/              # UI server (aiohttp)
-├── ui/
-│   ├── src/
-│   │   ├── App.jsx      # Main React component
-│   │   └── styles.css   # Styling
-│   └── package.json
-├── pyproject.toml
-└── README.md
-```
+| Dark | Light |
+|------|-------|
+| ![Dark](./docs/screenshot-dark.png) | ![Light](./docs/screenshot-light.png) |
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- Built with [React Flow](https://reactflow.dev/) for graph visualization
-- Inspired by the need to understand AI agent behavior beyond chat logs
+MIT
